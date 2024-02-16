@@ -1,0 +1,4 @@
+# test base python 3.10
+gradio
+loguru
+yt-dlp
