@@ -1,4 +1,8 @@
-# Video Downloader
+# Video Downloader 
+
+![GitHub license](https://img.shields.io/github/license/CyFeng16/video_downloader)![GitHub issues](https://img.shields.io/github/issues/CyFeng16/video_downloader)
+
+<img src="logo.webp" alt="Video Downloader Logo" width="256" height="256">
 
 ## Introduction
 
