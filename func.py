@@ -1,10 +1,10 @@
 import re
-import subprocess
 import threading
 import time
 import zlib
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from subprocess import run, PIPE
+from typing import Tuple, Optional, Union
 
 from loguru import logger
 
@@ -12,6 +12,9 @@ from loguru import logger
 MIN_PORT = 10000
 MAX_PORT = 60000
 DEFAULT_DELAY = 600  # seconds
+BEST_VIDEO = "BestVideo"
+FORMAT_AUTO = "auto"
+BASE_DOWNLOAD_PATH = Path("/tmp")
 
 
 def string_to_port_crc32(s: str) -> int:
@@ -41,7 +44,11 @@ def delayed_delete(file_path: Union[str, Path], delay: int = DEFAULT_DELAY) -> N
 
 
 def download_video(
-    video_url: str, download_option: str, base_download_path: Union[str, Path] = "/tmp"
+    video_url: str,
+    quality_option: str = BEST_VIDEO,
+    format_option: str = FORMAT_AUTO,
+    audio_only: bool = False,
+    base_download_path: Union[str, Path] = BASE_DOWNLOAD_PATH,
 ) -> Tuple[Optional[str], str]:
     """
     Download the video from the given URL using yt-dlp.
@@ -50,40 +57,62 @@ def download_video(
     if not video_url:
         return None, "Video URL cannot be empty."
     logger.info(video_url)
-    base_download_path = Path(base_download_path)
+    base_download_path = (
+        Path(base_download_path)
+        if not isinstance(base_download_path, Path)
+        else base_download_path
+    )
 
-    command_format_options = {
-        "BestVideo": "bv*+ba/b",
-        "BestAudio": "ba/b",
-        "1080p": "(bv*[height=1080]+ba/bv*+ba/b)[height<=1080]",
-        "720p": "(bv*[height=720]+ba/bv*+ba/b)[height<=720]",
-    }
+    quality_format, format_filter = get_quality_and_format_filters(
+        quality_option, format_option, audio_only
+    )
 
-    command_format = command_format_options.get(download_option)
-    if not command_format:
-        return None, "Invalid download option."
+    output_template = base_download_path / "%(title)s.f%(format_id)s.%(ext)s"
+    command = f"yt-dlp -f '{quality_format}{format_filter}' -o '{output_template}' --force-overwrites {video_url}"
 
-    output_template = f"'{base_download_path}/%(title)s.f%(format_id)s.%(ext)s'"
-    command = f"yt-dlp -f '{command_format}' -o {output_template} --force-overwrites {video_url}"
+    return execute_download_command(command)
+
+
+def get_quality_and_format_filters(
+    quality_option: str, format_option: str, audio_only: bool
+) -> Tuple[str, str]:
+    """
+    Get the quality and format filters based on the given options.
+    """
+
+    if audio_only:
+        return "bestaudio", ""
+    else:
+        quality_formats = {
+            "Best": "b/bv*+ba",
+            "1080p": "(b/bv*[height=1080]+ba/bv*+ba)[height<=1080]",
+            "720p": "(b/bv*[height=720]+ba/bv*+ba)best[height<=720]",
+        }
+        format_filters = {
+            "mp4": "[ext=mp4]",
+            "webm": "[ext=webm]",
+            "auto": "",
+        }
+        return (
+            quality_formats.get(quality_option, "b/bv*+ba"),
+            format_filters.get(format_option, ""),
+        )
+
+
+def execute_download_command(command: str) -> Tuple[Optional[str], str]:
+    """
+    Execute the download command and return the download path if successful.
+    """
 
     try:
-        process = subprocess.run(
-            command,
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
+        process = run(
+            command, shell=True, stdout=PIPE, stderr=PIPE, universal_newlines=True
         )
         if process.returncode == 0:
-            file_path = parse_download_path(process.stdout + process.stderr)
-            if file_path:
-                delayed_delete(file_path.as_posix())
-                return file_path.as_posix(), "Download successful."
-            else:
-                return (
-                    None,
-                    "Download successful, but unable to determine the file name.",
-                )
+            return (
+                parse_download_path(process.stdout + process.stderr),
+                "Download successful.",
+            )
         else:
             return None, f"Error downloading video: {process.stderr}"
     except Exception as e:
