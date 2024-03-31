@@ -1,7 +1,7 @@
 services:
   core:
     image:
-      docker.io/cyfeng/vioce-downloader-core:latest
+      docker.io/cyfeng/media-downloader-core:latest
 #    build:
 #      context: .
 #      dockerfile: Dockerfile
@@ -10,7 +10,7 @@ services:
 
   ui:
     image:
-        docker.io/cyfeng/vioce-downloader-ui:latest
+        docker.io/cyfeng/media-downloader-ui:latest
 #    build:
 #      context: .
 #      dockerfile: Dockerfile.ui
