@@ -1,0 +1,12 @@
+FROM python:3.10-slim as worker
+WORKDIR /workspace
+#RUN apt-get update && \
+#    apt-get install -y --no-install-recommends ffmpeg && \
+#    apt-get clean && \
+#    rm -rf /var/lib/apt/lists/*
+#COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir gradio loguru
+COPY app.py /workspace/
+EXPOSE 10652
+CMD ["python", "app.py"]

@@ -1,0 +1,27 @@
+services:
+  core:
+    image:
+      docker.io/cyfeng/vioce-downloader-core:latest
+#    build:
+#      context: .
+#      dockerfile: Dockerfile
+    ports:
+      - "10651:10651"
+
+  ui:
+    image:
+        docker.io/cyfeng/vioce-downloader-ui:latest
+#    build:
+#      context: .
+#      dockerfile: Dockerfile.ui
+    ports:
+      - "10652:10652"
+    environment:
+      LOCAL_IP: "0.0.0.0"
+      LOCAL_PORT: "10652"
+      # you can also use the following to specify the IP address of the core service
+      REMOTE_IP: "core"
+      # core is the service name in docker-compose.yml
+      REMOTE_PORT: "10651"
+    depends_on:
+      - core

@@ -2,3 +2,4 @@
 gradio
 loguru
 yt-dlp
+fastapi
